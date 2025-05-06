@@ -162,4 +162,6 @@ button:active {
 
 #location p:first-child {
     animation: pulse 2s infinite;
+/* Removed invalid CSS rule */
+    /* animation: pulse 2s infinite; */
 }
