@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Geolocation and Photo Capture</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2em;
+    }
+    #location, #photo-section {
+      margin-top: 1em;
+      padding: 1em;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+    a {
+      color: #0066cc;
+    }
+    video, canvas {
+      display: block;
+      margin-top: 1em;
+      max-width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Geolocation and Photo Capture</h1>
+  <button onclick="captureLocationAndPhoto()">📸 Capture Location & Photo</button>
+
+  <div id="location">
+    <p><strong>Status:</strong> Waiting for input...</p>
+    <p id="coords"></p>
+    <p id="map-link"></p>
+  </div>
+
+  <div id="photo-section">
+    <video id="video" autoplay style="display:none;"></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+    <p id="photo-info"></p>
+  </div>
+
+  <script>
+    let currentLat, currentLon;
+
+    function captureLocationAndPhoto() {
+      const statusEl = document.querySelector('#location p');
+      const coordsEl = document.getElementById("coords");
+      const mapLinkEl = document.getElementById("map-link");
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const photoInfo = document.getElementById("photo-info");
+
+      // Step 1: Get Geolocation
+      if (!navigator.geolocation) {
+        statusEl.textContent = "Geolocation is not supported by your browser.";
+        return;
+      }
+
+      statusEl.textContent = "Getting location...";
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          currentLat = position.coords.latitude.toFixed(6);
+          currentLon = position.coords.longitude.toFixed(6);
+
+          statusEl.textContent = "Location captured successfully.";
+          coordsEl.textContent = `Latitude: ${currentLat}, Longitude: ${currentLon}`;
+
+          const mapsUrl = `https://www.google.com/maps?q=${currentLat},${currentLon}`;
+          mapLinkEl.innerHTML = `<a href="${mapsUrl}" target="_blank">🌍 View on Google Maps</a>`;
+
+          // Step 2: Access Camera and Capture Photo
+          navigator.mediaDevices.getUserMedia({ video: true })
+            .then((stream) => {
+              video.srcObject = stream;
+              video.style.display = "block";
+
+              // Wait for the video to load metadata before capturing
+              video.onloadedmetadata = () => {
+                // Capture photo after a short delay
+                setTimeout(() => {
+                  canvas.style.display = "block";
+                  canvas.width = video.videoWidth;
+                  canvas.height = video.videoHeight;
+
+                  const context = canvas.getContext("2d");
+                  context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                  // Embed geolocation into the photo
+                  if (currentLat && currentLon) {
+                    const text = `Lat: ${currentLat}, Lon: ${currentLon}`;
+                    context.font = "20px Arial";
+                    context.fillStyle = "red";
+                    context.fillText(text, 10, canvas.height - 20);
+
+                    const mapsUrl = `https://www.google.com/maps?q=${currentLat},${currentLon}`;
+                    photoInfo.innerHTML = `<a href="${mapsUrl}" target="_blank">🌍 View Geolocation on Google Maps</a>`;
+                  } else {
+                    photoInfo.textContent = "No geolocation data available.";
+                  }
+
+                  // Stop the video stream
+                  const tracks = stream.getTracks();
+                  tracks.forEach((track) => track.stop());
+                  video.style.display = "none";
+                }, 500);
+              };
+            })
+            .catch((err) => {
+              alert("Error accessing camera: " + err.message);
+            });
+        },
+        (error) => {
+          statusEl.textContent = "Error getting location: " + error.message;
+          coordsEl.textContent = "";
+          mapLinkEl.textContent = "";
+        }
+      );
+    }
+  </script>
+
+</body>
+</html>
